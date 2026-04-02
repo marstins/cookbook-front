@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cookbook</title>
+
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- Config (sem dependências) -->
+  <script src="js/config.js"></script>
+
+  <!-- Utils (dependem de config.js) -->
+  <script src="js/utils/dom.js"></script>
+  <script src="js/utils/http.js"></script>
+
+  <!-- Core (sem dependências) -->
+  <script src="js/router.js"></script>
+  <script src="js/store.js"></script>
+
+  <!-- Pages (dependem de dom.js) -->
+  <script src="js/pages/login.js"></script>
+  <script src="js/pages/register.js"></script>
+  <script src="js/pages/cookbook.js"></script>
+  <script src="js/pages/create-recipe.js"></script>
+  <script src="js/pages/view-recipe.js"></script>
+  <script src="js/pages/edit-recipe.js"></script>
+  <script src="js/pages/discover.js"></script>
+  <script src="js/pages/not-found.js"></script>
+
+  <!-- Components (dependem de dom.js) -->
+  <script src="js/components/header.js"></script>
+
+  <!-- Bootstrap (depende de tudo acima) -->
+  <script src="js/app.js"></script>
+</body>
+</html>
