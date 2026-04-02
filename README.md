@@ -2,7 +2,7 @@
 
 Front da aplicação Cookbook. SPA feita em Javascript Vanilla.
 
-## Execução
+## Executar
 
 Abra o arquivo `index.html` no navegador (duplo clique ou arraste o arquivo para uma aba). Não é necessário servidor HTTP nem build.
 
