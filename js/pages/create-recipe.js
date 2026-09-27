@@ -59,7 +59,7 @@
       className: "login-input",
       placeholder: "Ingrediente",
       required: "true",
-      minlength: "5",
+      minlength: "1",
       maxlength: "30",
       value: value || "",
     });
@@ -126,7 +126,7 @@
       className: "login-input",
       placeholder: "Descrição",
       required: "true",
-      minlength: "10",
+      minlength: "1",
       maxlength: "50",
     });
 
@@ -134,7 +134,7 @@
       className: "login-input form-textarea",
       placeholder: "Instruções de preparo",
       required: "true",
-      minlength: "10",
+      minlength: "1",
       maxlength: "1000",
       rows: "6",
     });

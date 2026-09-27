@@ -34,7 +34,7 @@
       type: "text",
       className: "login-input",
       placeholder: "Ingrediente",
-      minlength: "5",
+      minlength: "1",
       maxlength: "30",
       value: value || "",
     });
@@ -86,7 +86,7 @@
       type: "text",
       className: "login-input",
       placeholder: "Descrição",
-      minlength: "10",
+      minlength: "1",
       maxlength: "50",
       value: record.description || "",
     });
@@ -94,7 +94,7 @@
     var instructionsInput = h("textarea", {
       className: "login-input form-textarea",
       placeholder: "Instruções de preparo",
-      minlength: "10",
+      minlength: "1",
       maxlength: "1000",
       rows: "6",
     });
