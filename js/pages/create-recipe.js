@@ -179,7 +179,7 @@
 
     var actions = h("div", { className: "form-actions" }, [submitDraftBtn, submitBtn]);
 
-    var form = h("form", { className: "form-create-recipe" }, [
+    var form = h("form", { className: "form-create-recipe", novalidate: "true" }, [
       errorMsg,
       h("label", { className: "form-label" }, "Título"),
       titleInput,

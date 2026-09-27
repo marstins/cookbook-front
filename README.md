@@ -75,8 +75,17 @@ Crie um cadastro na tela de login ou entre com um dos usuários de exemplo criad
 2. A API extrai o texto com o OCR.space e devolve um rascunho.
 3. O formulário da mesma página é preenchido com o que voltou e a tela rola até ele.
 4. Corrija o que for preciso e escolha:
-   - **Salvar rascunho**, para continuar depois pela página Rascunhos;
-   - **Criar Receita**, que cria a receita e apaga o rascunho.
+   - **Salvar rascunho**, que leva para a página Rascunhos, onde dá para continuar depois;
+   - **Criar Receita**, que cria a receita, apaga o rascunho e leva para o Livro de Receitas.
+
+Para testar sem precisar de uma foto, a pasta [`receitas/`](receitas/) tem arquivos de exemplo prontos para enviar, todos abaixo de 1 MiB:
+
+| Arquivo | Formato |
+| --- | --- |
+| `Receita - Pão de Queijo.pdf` | PDF |
+| `Receita - Brigadeiro Gourmet.pdf` | PDF |
+| `Receita - Moqueca Baiana.pdf` | PDF |
+| `Receita Bolo de Cenoura.jpeg` | JPG |
 
 ### Copiar uma receita
 
@@ -102,6 +111,11 @@ Adicionado neste MVP:
 - Importação de receita por foto na página Criar Receita.
 - Página Rascunhos, com exclusão pelo card.
 - Tela de edição compartilhada entre receita e rascunho, com **Salvar rascunho**, **Salvar receita** e **Descartar**.
-- Botão de copiar receita para a área de transferência.
+- Botão de copiar receita para a área de transferência, com aviso de "Copiado!".
 - Contador de caracteres nos campos com limite.
+- Alerta de sucesso fixo abaixo do menu ao criar ou atualizar receita e ao salvar rascunho, que continua visível depois da troca de página.
+- Redirecionamento depois de salvar: receita criada vai para o Livro de Receitas e rascunho salvo vai para Rascunhos.
+- Diálogo de confirmação próprio, no lugar do `confirm()` do navegador, antes de excluir receita ou rascunho.
+- Mensagens de erro em português com o nome do campo (ex.: "Ingrediente 3: máximo de 30 caracteres."), presas abaixo do menu para ficarem visíveis mesmo com a página rolada até os botões.
+- Arquivos de exemplo para a importação em `receitas/`.
 - Dockerfile.

@@ -65,7 +65,7 @@
 
     var btnRow = h("div", { className: "login-btn-row" }, [registerBtn, submitBtn]);
 
-    var form = h("form", { className: "login-form" }, [
+    var form = h("form", { className: "login-form", novalidate: "true" }, [
       h("h1", { className: "login-title" }, "Cookbook"),
       h("p", { className: "login-subtitle" }, "Faça login para continuar"),
       errorMsg,
