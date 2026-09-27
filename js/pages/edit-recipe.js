@@ -272,26 +272,38 @@
     }
 
     function discardRecord() {
-      var confirmMsg = isDraft
-        ? "Tem certeza que deseja descartar este rascunho?"
-        : "Tem certeza que deseja deletar esta receita?";
-      if (!confirm(confirmMsg)) return;
+      var name = "\"" + (record.title || "Sem título") + "\"";
 
-      errorMsg.textContent = "";
-      setLoading(true);
-      discardBtn.textContent = isDraft ? "Descartando..." : "Deletando...";
+      App.confirmDialog(isDraft
+        ? {
+            title: "Descartar rascunho?",
+            message: "O rascunho " + name + " será descartado. Essa ação não pode ser desfeita.",
+            confirmLabel: "Descartar",
+          }
+        : {
+            title: "Deletar receita?",
+            message: "A receita " + name + " será deletada. Essa ação não pode ser desfeita.",
+            confirmLabel: "Deletar",
+          }
+      ).then(function (confirmed) {
+        if (!confirmed) return;
 
-      var endpoint = isDraft ? "/drafts/" + record.id : "/recipes/" + record.id;
+        errorMsg.textContent = "";
+        setLoading(true);
+        discardBtn.textContent = isDraft ? "Descartando..." : "Deletando...";
 
-      App.http
-        .delete(endpoint)
-        .then(function () {
-          window.location.hash = isDraft ? "#/drafts" : "#/";
-        })
-        .catch(function (err) {
-          setLoading(false);
-          errorMsg.textContent = extractErrorMessage(err);
-        });
+        var endpoint = isDraft ? "/drafts/" + record.id : "/recipes/" + record.id;
+
+        App.http
+          .delete(endpoint)
+          .then(function () {
+            window.location.hash = isDraft ? "#/drafts" : "#/";
+          })
+          .catch(function (err) {
+            setLoading(false);
+            errorMsg.textContent = extractErrorMessage(err);
+          });
+      });
     }
 
     if (submitDraftBtn) {

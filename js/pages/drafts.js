@@ -56,21 +56,28 @@
 
     deleteBtn.addEventListener("click", function (e) {
       e.stopPropagation();
-      if (!confirm("Tem certeza que deseja excluir este rascunho?")) return;
 
-      deleteBtn.disabled = true;
+      App.confirmDialog({
+        title: "Excluir rascunho?",
+        message: "O rascunho \"" + (draft.title || "Sem título") + "\" será excluído. Essa ação não pode ser desfeita.",
+        confirmLabel: "Excluir",
+      }).then(function (confirmed) {
+        if (!confirmed) return;
 
-      App.http
-        .delete("/drafts/" + draft.id)
-        .then(function () {
-          onDeleted();
-        })
-        .catch(function (err) {
-          deleteBtn.disabled = false;
-          var data = err.data;
-          var msg = data && data.message ? data.message : "Erro ao excluir rascunho.";
-          alert(msg);
-        });
+        deleteBtn.disabled = true;
+
+        App.http
+          .delete("/drafts/" + draft.id)
+          .then(function () {
+            onDeleted();
+          })
+          .catch(function (err) {
+            deleteBtn.disabled = false;
+            var data = err.data;
+            var msg = data && data.message ? data.message : "Erro ao excluir rascunho.";
+            alert(msg);
+          });
+      });
     });
 
     var card = h("div", { className: "recipe-card recipe-card--clickable" }, [

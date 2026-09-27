@@ -100,24 +100,30 @@
       );
 
       deleteBtn.addEventListener("click", function () {
-        if (!confirm("Tem certeza que deseja deletar esta receita?")) return;
+        App.confirmDialog({
+          title: "Deletar receita?",
+          message: "A receita \"" + recipe.title + "\" será deletada. Essa ação não pode ser desfeita.",
+          confirmLabel: "Deletar",
+        }).then(function (confirmed) {
+          if (!confirmed) return;
 
-        deleteBtn.disabled = true;
-        deleteBtn.textContent = "Deletando...";
+          deleteBtn.disabled = true;
+          deleteBtn.textContent = "Deletando...";
 
-        App.http
-          .delete("/recipes/" + recipe.id)
-          .then(function () {
-            window.location.hash = "#/";
-          })
-          .catch(function (err) {
-            deleteBtn.disabled = false;
-            deleteBtn.textContent = "Deletar";
+          App.http
+            .delete("/recipes/" + recipe.id)
+            .then(function () {
+              window.location.hash = "#/";
+            })
+            .catch(function (err) {
+              deleteBtn.disabled = false;
+              deleteBtn.textContent = "Deletar";
 
-            var data = err.data;
-            var msg = (data && data.message) ? data.message : "Erro ao deletar receita.";
-            alert(msg);
-          });
+              var data = err.data;
+              var msg = (data && data.message) ? data.message : "Erro ao deletar receita.";
+              alert(msg);
+            });
+        });
       });
 
       var editBtn = h(
