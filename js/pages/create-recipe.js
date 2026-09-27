@@ -8,6 +8,13 @@
 
   var NETWORK_ERROR = "Não foi possível conectar ao servidor. Tente novamente.";
   var GENERIC_ERROR = "Ocorreu um erro inesperado. Tente novamente.";
+  var FILE_TOO_LARGE = "O arquivo enviado é grande demais.";
+  var FILE_TYPE_INVALID = "Envie um arquivo PNG, JPG ou PDF.";
+  var ALLOWED_TYPES = {
+    "image/jpeg": true,
+    "image/png": true,
+    "application/pdf": true,
+  };
 
   function extractErrorMessage(err) {
     if (!err.status) return NETWORK_ERROR;
@@ -15,12 +22,38 @@
     if (!data || typeof data === "string") return GENERIC_ERROR;
     if (data.message) return data.message;
     if (Array.isArray(data.errors) && data.errors.length > 0) {
-      return data.errors.map(function (e) { return e.msg; }).join(". ");
+      return data.errors.map(function (e) { return e.msg || e.message; }).join(". ");
     }
     return GENERIC_ERROR;
   }
 
-  function createIngredientRow(list) {
+  function inferFileType(file) {
+    if (file.type && ALLOWED_TYPES[file.type]) return file.type;
+    var name = (file.name || "").toLowerCase();
+    if (name.slice(-4) === ".jpg" || name.slice(-5) === ".jpeg") return "image/jpeg";
+    if (name.slice(-4) === ".png") return "image/png";
+    if (name.slice(-4) === ".pdf") return "application/pdf";
+    return "";
+  }
+
+  function normalizeDataUri(dataUri) {
+    return dataUri.replace(/^data:image\/jpg;base64,/i, "data:image/jpeg;base64,");
+  }
+
+  function readFileAsDataUri(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        resolve(normalizeDataUri(String(reader.result || "")));
+      };
+      reader.onerror = function () {
+        reject(new Error("Não foi possível ler o arquivo."));
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function createIngredientRow(list, value) {
     var input = h("input", {
       type: "text",
       className: "login-input",
@@ -28,6 +61,7 @@
       required: "true",
       minlength: "5",
       maxlength: "30",
+      value: value || "",
     });
 
     var removeBtn = h("button", {
@@ -36,7 +70,11 @@
       "aria-label": "Remover",
     }, "×");
 
-    var row = h("div", { className: "ingredient-row" }, [input, removeBtn]);
+    var row = h("div", { className: "ingredient-row" }, [
+      input,
+      App.charCounter.attach(input, 30),
+      removeBtn,
+    ]);
 
     removeBtn.addEventListener("click", function () {
       if (list.querySelectorAll(".ingredient-row").length > 1) {
@@ -47,8 +85,31 @@
     return row;
   }
 
+  function collectIngredients(ingredientList) {
+    var ingredientRows = ingredientList.querySelectorAll(".ingredient-row input");
+    var ingredients = [];
+    for (var i = 0; i < ingredientRows.length; i++) {
+      var val = ingredientRows[i].value.trim();
+      if (val) ingredients.push({ description: val });
+    }
+    return ingredients;
+  }
+
   App.pages.renderCreateRecipe = function renderCreateRecipe(container) {
-    var store = App._store;
+    var draftId = null;
+
+    var uploadError = h("p", { className: "login-error form-upload-error" });
+    var fileInput = h("input", {
+      type: "file",
+      className: "form-upload-input",
+      accept: "image/png,image/jpeg,application/pdf,.png,.jpg,.jpeg,.pdf",
+    });
+    var uploadBtn = h(
+      "button",
+      { type: "button", className: "btn btn-primary form-upload-btn" },
+      "Enviar arquivo"
+    );
+
     var errorMsg = h("p", { className: "login-error" });
     var successMsg = h("p", { className: "login-success" });
 
@@ -80,7 +141,7 @@
     });
 
     var ingredientList = h("div", { className: "ingredient-list" });
-    ingredientList.append(createIngredientRow(ingredientList));
+    ingredientList.append(createIngredientRow(ingredientList, ""));
 
     var addIngredientBtn = h(
       "button",
@@ -89,8 +150,15 @@
     );
 
     addIngredientBtn.addEventListener("click", function () {
-      ingredientList.append(createIngredientRow(ingredientList));
+      ingredientList.append(createIngredientRow(ingredientList, ""));
     });
+
+    var submitDraftBtn = h(
+      "button",
+      { type: "button", className: "btn btn-draft form-submit" },
+      "Salvar rascunho"
+    );
+    submitDraftBtn.hidden = true;
 
     var submitBtn = h(
       "button",
@@ -110,23 +178,32 @@
       h("span", { className: "toggle-label" }, "Receita pública"),
     ]);
 
+    var actions = h("div", { className: "form-actions" }, [submitDraftBtn, submitBtn]);
+
     var form = h("form", { className: "form-create-recipe" }, [
       errorMsg,
       successMsg,
       h("label", { className: "form-label" }, "Título"),
       titleInput,
+      App.charCounter.attach(titleInput, 20),
       h("label", { className: "form-label" }, "Descrição"),
       descInput,
+      App.charCounter.attach(descInput, 30),
       h("label", { className: "form-label" }, "Ingredientes"),
       ingredientList,
       addIngredientBtn,
       h("label", { className: "form-label" }, "Instruções"),
       instructionsInput,
+      App.charCounter.attach(instructionsInput, 800),
       toggleSwitch,
-      submitBtn,
+      actions,
     ]);
 
     function setLoading(loading) {
+      uploadBtn.disabled = loading;
+      fileInput.disabled = loading;
+      submitDraftBtn.disabled = loading;
+      submitDraftBtn.textContent = "Salvar rascunho";
       submitBtn.disabled = loading;
       submitBtn.textContent = loading ? "Criando..." : "Criar Receita";
       addIngredientBtn.disabled = loading;
@@ -135,57 +212,205 @@
       instructionsInput.disabled = loading;
     }
 
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
+    function readFields() {
+      return {
+        title: titleInput.value.trim(),
+        description: descInput.value.trim(),
+        instructions: instructionsInput.value.trim(),
+        ingredients: collectIngredients(ingredientList),
+      };
+    }
+
+    function fillFormFromDraft(draft) {
+      draftId = draft.id;
+      titleInput.value = draft.title || "";
+      descInput.value = draft.description || "";
+      instructionsInput.value = draft.instructions || "";
+
+      ingredientList.innerHTML = "";
+      var ingredients = Array.isArray(draft.ingredients) ? draft.ingredients : [];
+      if (ingredients.length === 0) {
+        ingredientList.append(createIngredientRow(ingredientList, ""));
+      } else {
+        for (var i = 0; i < ingredients.length; i++) {
+          ingredientList.append(
+            createIngredientRow(ingredientList, ingredients[i].description || "")
+          );
+        }
+      }
+
+      var isDraft = !!(draft.id && draft.is_draft === true);
+      submitDraftBtn.hidden = !isDraft;
+      toggleSwitch.hidden = isDraft;
+      if (isDraft) toggleCheckbox.checked = false;
+      App.charCounter.refresh(form);
+      form.scrollIntoView({ behavior: "smooth", block: "start" });
+      titleInput.focus();
+    }
+
+    function resetForm() {
+      draftId = null;
+      form.reset();
+      ingredientList.innerHTML = "";
+      ingredientList.append(createIngredientRow(ingredientList, ""));
+      submitDraftBtn.hidden = true;
+      toggleSwitch.hidden = false;
+      App.charCounter.refresh(form);
+    }
+
+    function saveDraft() {
+      if (!draftId) return;
+
       errorMsg.textContent = "";
       successMsg.textContent = "";
-
-      var title = titleInput.value.trim();
-      var description = descInput.value.trim();
-      var instructions = instructionsInput.value.trim();
-
-      var ingredientRows = ingredientList.querySelectorAll(".ingredient-row input");
-      var ingredients = [];
-      for (var i = 0; i < ingredientRows.length; i++) {
-        var val = ingredientRows[i].value.trim();
-        if (val) ingredients.push({ description: val });
-      }
-
-      if (!title || !description || !instructions || ingredients.length === 0) {
-        errorMsg.textContent = "Preencha todos os campos e adicione ao menos um ingrediente.";
-        return;
-      }
-
       setLoading(true);
+      submitDraftBtn.textContent = "Salvando...";
+
+      var fields = readFields();
 
       App.http
-        .post("/recipes/", {
-          title: title,
-          description: description,
-          instructions: instructions,
-          ingredients: ingredients,
-          is_public: toggleCheckbox.checked,
+        .put("/drafts/" + draftId, {
+          title: fields.title || null,
+          description: fields.description || null,
+          instructions: fields.instructions || null,
+          ingredients: fields.ingredients,
         })
         .then(function () {
-          successMsg.textContent = "Receita criada com sucesso!";
-          form.reset();
-          ingredientList.innerHTML = "";
-          ingredientList.append(createIngredientRow(ingredientList));
+          successMsg.textContent = "Rascunho salvo.";
           setLoading(false);
         })
         .catch(function (err) {
           setLoading(false);
           errorMsg.textContent = extractErrorMessage(err);
         });
+    }
+
+    function createRecipe() {
+      var fields = readFields();
+      errorMsg.textContent = "";
+      successMsg.textContent = "";
+
+      if (!fields.title || !fields.description || !fields.instructions || fields.ingredients.length === 0) {
+        errorMsg.textContent = "Preencha todos os campos e adicione ao menos um ingrediente.";
+        return;
+      }
+
+      setLoading(true);
+
+      var payload = {
+        title: fields.title,
+        description: fields.description,
+        instructions: fields.instructions,
+        ingredients: fields.ingredients,
+        is_public: toggleCheckbox.checked,
+      };
+
+      var request = App.http.post("/recipes/", payload);
+      if (draftId) {
+        request = request.then(function (created) {
+          return App.http.delete("/drafts/" + draftId).catch(function () {
+            return created;
+          }).then(function () {
+            return created;
+          });
+        });
+      }
+
+      request
+        .then(function (created) {
+          if (draftId && created && created.id) {
+            window.location.hash = "#/recipe/" + created.id;
+            return;
+          }
+          successMsg.textContent = "Receita criada com sucesso!";
+          resetForm();
+          setLoading(false);
+        })
+        .catch(function (err) {
+          setLoading(false);
+          errorMsg.textContent = extractErrorMessage(err);
+        });
+    }
+
+    function importFile(file) {
+      uploadError.textContent = "";
+      errorMsg.textContent = "";
+      successMsg.textContent = "";
+
+      if (!file) return;
+
+      if (!inferFileType(file)) {
+        uploadError.textContent = FILE_TYPE_INVALID;
+        fileInput.value = "";
+        return;
+      }
+
+      if (file.size > App.config.MAX_UPLOAD_BYTES) {
+        uploadError.textContent = FILE_TOO_LARGE;
+        fileInput.value = "";
+        return;
+      }
+
+      setLoading(true);
+      uploadBtn.textContent = "Lendo arquivo...";
+
+      readFileAsDataUri(file)
+        .then(function (sourceData) {
+          uploadBtn.textContent = "Extraindo o texto...";
+          return App.http.post("/drafts/", { source_data: sourceData });
+        })
+        .then(function (draft) {
+          setLoading(false);
+          uploadBtn.textContent = "Enviar arquivo";
+          fileInput.value = "";
+          if (!draft || !draft.id) {
+            uploadError.textContent = GENERIC_ERROR;
+            return;
+          }
+          fillFormFromDraft(draft);
+        })
+        .catch(function (err) {
+          setLoading(false);
+          uploadBtn.textContent = "Enviar arquivo";
+          fileInput.value = "";
+          if (err && err.status === 413) {
+            uploadError.textContent = FILE_TOO_LARGE;
+            return;
+          }
+          uploadError.textContent = err && err.message === "Não foi possível ler o arquivo."
+            ? err.message
+            : extractErrorMessage(err);
+        });
+    }
+
+    uploadBtn.addEventListener("click", function () {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener("change", function () {
+      importFile(fileInput.files && fileInput.files[0]);
+    });
+
+    submitDraftBtn.addEventListener("click", saveDraft);
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      createRecipe();
     });
 
     var page = h("div", { className: "page" }, [
       h("h1", { className: "page-title" }, "Criar Receita"),
       h("p", { className: "page-subtitle" }, "Crie e compartilhe uma nova receita."),
+      h("div", { className: "form-upload" }, [
+        uploadError,
+        fileInput,
+        uploadBtn,
+        h("p", { className: "form-upload-hint" }, "PNG, JPG ou PDF, até 1 MB."),
+      ]),
+      h("p", { className: "form-or" }, "ou"),
       form,
     ]);
 
     container.append(page);
-    titleInput.focus();
   };
 })();

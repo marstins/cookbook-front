@@ -99,6 +99,10 @@ img {
   display: block;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 input,
 select,
 textarea {

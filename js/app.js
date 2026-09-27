@@ -51,9 +51,11 @@
 
     new App.Router("#app-main")
       .addRoute("/", App.pages.renderCookbook)
+      .addRoute("/drafts", App.pages.renderDrafts)
       .addRoute("/create-recipe", App.pages.renderCreateRecipe)
       .addRoute("/recipe", App.pages.renderViewRecipe)
       .addRoute("/edit-recipe", App.pages.renderEditRecipe)
+      .addRoute("/edit-draft", App.pages.renderEditRecipe)
       .addRoute("/discover", App.pages.renderDiscover)
       .setFallback(App.pages.renderNotFound)
       .start();

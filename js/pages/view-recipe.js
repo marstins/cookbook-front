@@ -6,6 +6,64 @@
 
   var h = App.dom.createElement;
 
+  var COPY_ICON =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
+  function icon(markup) {
+    var wrap = document.createElement("span");
+    wrap.className = "icon";
+    wrap.setAttribute("aria-hidden", "true");
+    wrap.innerHTML = markup;
+    return wrap;
+  }
+
+  function formatRecipeText(recipe) {
+    var lines = [recipe.title || "", "", "Ingredientes"];
+    var ingredients = recipe.ingredients || [];
+
+    for (var i = 0; i < ingredients.length; i++) {
+      var item = ingredients[i];
+      var description = item && item.description ? item.description : item;
+      lines.push("- " + description);
+    }
+
+    lines.push("", "Modo de preparo", recipe.instructions || "");
+    return lines.join("\n");
+  }
+
+  function copyWithExecCommand(text) {
+    return new Promise(function (resolve, reject) {
+      var textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+
+      try {
+        var ok = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        if (ok) resolve();
+        else reject(new Error("copy failed"));
+      } catch (err) {
+        document.body.removeChild(textarea);
+        reject(err);
+      }
+    });
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).catch(function () {
+        return copyWithExecCommand(text);
+      });
+    }
+
+    return copyWithExecCommand(text);
+  }
+
   function extractRecipeId(path) {
     var parts = path.split("/");
     return parts[parts.length - 1] || "";
@@ -109,6 +167,36 @@
       recipe.is_public ? "Pública" : "Privada"
     );
 
+    var copyBtn = h(
+      "button",
+      {
+        type: "button",
+        className: "btn-icon-copy",
+        "aria-label": "Copiar receita",
+        title: "Copiar receita",
+      },
+      [icon(COPY_ICON)]
+    );
+
+    var copyFeedback = h("span", { className: "copy-feedback", role: "status" });
+    var copyTimer = null;
+
+    copyBtn.addEventListener("click", function () {
+      copyToClipboard(formatRecipeText(recipe))
+        .then(function () {
+          clearTimeout(copyTimer);
+          copyBtn.classList.add("is-copied");
+          copyFeedback.textContent = "Copiado!";
+          copyTimer = setTimeout(function () {
+            copyBtn.classList.remove("is-copied");
+            copyFeedback.textContent = "";
+          }, 2000);
+        })
+        .catch(function () {
+          alert("Não foi possível copiar a receita.");
+        });
+    });
+
     var metaChildren = [
       h("span", { className: "detail-author" }, "Por " + recipe.author_name),
       h("span", { className: "detail-date" }, new Date(recipe.created_at).toLocaleDateString("pt-BR")),
@@ -116,7 +204,11 @@
 
     var cardChildren = [
       h("div", { className: "detail-header" }, [
-        h("h1", { className: "detail-title" }, recipe.title),
+        h("div", { className: "detail-title-group" }, [
+          h("h1", { className: "detail-title" }, recipe.title),
+          copyBtn,
+          copyFeedback,
+        ]),
         visibilityBadge,
       ]),
       h("p", { className: "detail-desc" }, recipe.description),

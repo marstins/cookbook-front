@@ -9,6 +9,7 @@
 
   var NAV_ITEMS = [
     { label: "Livro de Receitas", path: "/" },
+    { label: "Rascunhos", path: "/drafts" },
     { label: "Criar Receita", path: "/create-recipe" },
     { label: "Descobrir", path: "/discover" },
   ];

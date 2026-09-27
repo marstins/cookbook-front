@@ -1,0 +1,15 @@
+flowchart LR
+    U(("Usuário")) -->|navegador| F
+
+    subgraph projeto["Desenvolvido neste projeto"]
+        F["cookbook-front<br/>SPA em Vanilla JS"]
+        A["cookbook-api<br/>Flask + SQLAlchemy"]
+        DB[("SQLite<br/>receitas, usuários,<br/>rascunhos")]
+    end
+
+    O["OCR.space<br/>API externa de OCR"]
+
+    F -->|"REST/JSON<br/>GET POST PUT DELETE"| A
+    A -->|"leitura e escrita"| DB
+    A -->|"POST /parse/image<br/>base64Image"| O
+    O -->|"ParsedText"| A
