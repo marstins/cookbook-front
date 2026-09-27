@@ -111,7 +111,6 @@
     );
 
     var errorMsg = h("p", { className: "login-error" });
-    var successMsg = h("p", { className: "login-success" });
 
     var titleInput = h("input", {
       type: "text",
@@ -119,7 +118,7 @@
       placeholder: "Título",
       required: "true",
       minlength: "1",
-      maxlength: "20",
+      maxlength: "40",
     });
 
     var descInput = h("input", {
@@ -128,7 +127,7 @@
       placeholder: "Descrição",
       required: "true",
       minlength: "10",
-      maxlength: "30",
+      maxlength: "50",
     });
 
     var instructionsInput = h("textarea", {
@@ -136,7 +135,7 @@
       placeholder: "Instruções de preparo",
       required: "true",
       minlength: "10",
-      maxlength: "800",
+      maxlength: "1000",
       rows: "6",
     });
 
@@ -182,19 +181,18 @@
 
     var form = h("form", { className: "form-create-recipe" }, [
       errorMsg,
-      successMsg,
       h("label", { className: "form-label" }, "Título"),
       titleInput,
-      App.charCounter.attach(titleInput, 20),
+      App.charCounter.attach(titleInput, 40),
       h("label", { className: "form-label" }, "Descrição"),
       descInput,
-      App.charCounter.attach(descInput, 30),
+      App.charCounter.attach(descInput, 50),
       h("label", { className: "form-label" }, "Ingredientes"),
       ingredientList,
       addIngredientBtn,
       h("label", { className: "form-label" }, "Instruções"),
       instructionsInput,
-      App.charCounter.attach(instructionsInput, 800),
+      App.charCounter.attach(instructionsInput, 1000),
       toggleSwitch,
       actions,
     ]);
@@ -248,21 +246,10 @@
       titleInput.focus();
     }
 
-    function resetForm() {
-      draftId = null;
-      form.reset();
-      ingredientList.innerHTML = "";
-      ingredientList.append(createIngredientRow(ingredientList, ""));
-      submitDraftBtn.hidden = true;
-      toggleSwitch.hidden = false;
-      App.charCounter.refresh(form);
-    }
-
     function saveDraft() {
       if (!draftId) return;
 
       errorMsg.textContent = "";
-      successMsg.textContent = "";
       setLoading(true);
       submitDraftBtn.textContent = "Salvando...";
 
@@ -276,8 +263,8 @@
           ingredients: fields.ingredients,
         })
         .then(function () {
-          successMsg.textContent = "Rascunho salvo.";
-          setLoading(false);
+          App.toast.success("Rascunho salvo.");
+          window.location.hash = "#/drafts";
         })
         .catch(function (err) {
           setLoading(false);
@@ -288,7 +275,6 @@
     function createRecipe() {
       var fields = readFields();
       errorMsg.textContent = "";
-      successMsg.textContent = "";
 
       if (!fields.title || !fields.description || !fields.instructions || fields.ingredients.length === 0) {
         errorMsg.textContent = "Preencha todos os campos e adicione ao menos um ingrediente.";
@@ -307,24 +293,15 @@
 
       var request = App.http.post("/recipes/", payload);
       if (draftId) {
-        request = request.then(function (created) {
-          return App.http.delete("/drafts/" + draftId).catch(function () {
-            return created;
-          }).then(function () {
-            return created;
-          });
+        request = request.then(function () {
+          return App.http.delete("/drafts/" + draftId).catch(function () {});
         });
       }
 
       request
-        .then(function (created) {
-          if (draftId && created && created.id) {
-            window.location.hash = "#/recipe/" + created.id;
-            return;
-          }
-          successMsg.textContent = "Receita criada com sucesso!";
-          resetForm();
-          setLoading(false);
+        .then(function () {
+          App.toast.success("Receita criada com sucesso!");
+          window.location.hash = "#/";
         })
         .catch(function (err) {
           setLoading(false);
@@ -335,7 +312,6 @@
     function importFile(file) {
       uploadError.textContent = "";
       errorMsg.textContent = "";
-      successMsg.textContent = "";
 
       if (!file) return;
 

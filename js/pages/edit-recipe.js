@@ -72,14 +72,13 @@
 
   function renderEditForm(record, container, isDraft) {
     var errorMsg = h("p", { className: "login-error" });
-    var successMsg = h("p", { className: "login-success" });
 
     var titleInput = h("input", {
       type: "text",
       className: "login-input",
       placeholder: "Título",
       minlength: "1",
-      maxlength: "20",
+      maxlength: "40",
       value: record.title || "",
     });
 
@@ -88,7 +87,7 @@
       className: "login-input",
       placeholder: "Descrição",
       minlength: "10",
-      maxlength: "30",
+      maxlength: "50",
       value: record.description || "",
     });
 
@@ -96,7 +95,7 @@
       className: "login-input form-textarea",
       placeholder: "Instruções de preparo",
       minlength: "10",
-      maxlength: "800",
+      maxlength: "1000",
       rows: "6",
     });
     instructionsInput.value = record.instructions || "";
@@ -165,19 +164,18 @@
 
     var form = h("form", { className: "form-create-recipe" }, [
       errorMsg,
-      successMsg,
       h("label", { className: "form-label" }, "Título"),
       titleInput,
-      App.charCounter.attach(titleInput, 20),
+      App.charCounter.attach(titleInput, 40),
       h("label", { className: "form-label" }, "Descrição"),
       descInput,
-      App.charCounter.attach(descInput, 30),
+      App.charCounter.attach(descInput, 50),
       h("label", { className: "form-label" }, "Ingredientes"),
       ingredientList,
       addIngredientBtn,
       h("label", { className: "form-label" }, "Instruções"),
       instructionsInput,
-      App.charCounter.attach(instructionsInput, 800),
+      App.charCounter.attach(instructionsInput, 1000),
       toggleSwitch,
       actions,
     ]);
@@ -213,7 +211,6 @@
     function saveDraft() {
       var fields = readFields();
       errorMsg.textContent = "";
-      successMsg.textContent = "";
       setLoading(true);
 
       App.http
@@ -224,8 +221,8 @@
           ingredients: fields.ingredients,
         })
         .then(function () {
-          successMsg.textContent = "Rascunho salvo.";
-          setLoading(false);
+          App.toast.success("Rascunho salvo.");
+          window.location.hash = "#/drafts";
         })
         .catch(function (err) {
           setLoading(false);
@@ -236,7 +233,6 @@
     function saveRecipe() {
       var fields = readFields();
       errorMsg.textContent = "";
-      successMsg.textContent = "";
 
       if (!fields.title || !fields.description || !fields.instructions || fields.ingredients.length === 0) {
         errorMsg.textContent = "Preencha todos os campos e adicione ao menos um ingrediente.";
@@ -254,22 +250,19 @@
       };
 
       var request = isDraft
-        ? App.http.post("/recipes/", payload).then(function (created) {
-            return App.http.delete("/drafts/" + record.id).catch(function () {
-              return created;
-            }).then(function () {
-              return created;
-            });
+        ? App.http.post("/recipes/", payload).then(function () {
+            return App.http.delete("/drafts/" + record.id).catch(function () {});
           })
         : App.http.put("/recipes/" + record.id, payload);
 
       request
-        .then(function (created) {
-          if (isDraft && created && created.id) {
-            window.location.hash = "#/recipe/" + created.id;
+        .then(function () {
+          if (isDraft) {
+            App.toast.success("Receita criada com sucesso!");
+            window.location.hash = "#/";
             return;
           }
-          successMsg.textContent = "Receita atualizada com sucesso.";
+          App.toast.success("Receita atualizada com sucesso.");
           setLoading(false);
         })
         .catch(function (err) {
@@ -285,7 +278,6 @@
       if (!confirm(confirmMsg)) return;
 
       errorMsg.textContent = "";
-      successMsg.textContent = "";
       setLoading(true);
       discardBtn.textContent = isDraft ? "Descartando..." : "Deletando...";
 
