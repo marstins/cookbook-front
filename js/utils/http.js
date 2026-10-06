@@ -1,7 +1,7 @@
 /**
  * HTTP client wrapper sobre fetch.
  * Resolve paths relativos contra App.config.API_BASE_URL e
- * injeta o header user-id quando existe usuário autenticado no store.
+ * injeta Authorization: Bearer quando existe token no store.
  */
 
 (function () {
@@ -19,14 +19,27 @@
     return base.replace(/\/+$/, "") + "/" + path.replace(/^\/+/, "");
   }
 
+  var TOKEN_ERRORS = {
+    TOKEN_NOT_FOUND: true,
+    TOKEN_EXPIRED: true,
+    INVALID_TOKEN: true,
+  };
+
+  function clearSessionOnInvalidToken(body) {
+    var store = App._store;
+    if (!store || !store.get("user")) return;
+    if (!body || !TOKEN_ERRORS[body.code]) return;
+    store.set("user", null);
+  }
+
   function authHeaders() {
     var store = App._store;
     if (!store) return {};
 
     var user = store.get("user");
-    if (!user || !user.id) return {};
+    if (!user || !user.token) return {};
 
-    return { "user-id": user.id };
+    return { Authorization: "Bearer " + user.token };
   }
 
   function request(url, options) {
@@ -45,6 +58,7 @@
           var error = new Error("HTTP " + response.status + ": " + response.statusText);
           error.status = response.status;
           error.data = body;
+          clearSessionOnInvalidToken(body);
           throw error;
         });
       }

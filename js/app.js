@@ -11,6 +11,11 @@
     if (raw) savedUser = JSON.parse(raw);
   } catch (_) {}
 
+  if (savedUser && !savedUser.token) {
+    savedUser = null;
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
   var store = new App.Store({
     appName: "Cookbook",
     user: savedUser,
