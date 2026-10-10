@@ -149,7 +149,7 @@
       h("span", { className: "toggle-slider" }),
       h("span", { className: "toggle-label" }, "Receita pública"),
     ]);
-    toggleSwitch.hidden = isDraft;
+    toggleSwitch.hidden = isDraft || record.original_author_id !== user.id;
 
     var discardBtn = h(
       "button",
