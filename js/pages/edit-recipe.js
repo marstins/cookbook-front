@@ -71,6 +71,7 @@
   }
 
   function renderEditForm(record, container, isDraft) {
+    var user = App._store.get("user");
     var errorMsg = h("p", { className: "login-error" });
 
     var titleInput = h("input", {
@@ -150,7 +151,24 @@
       h("span", { className: "toggle-label" }, "Receita pública"),
     ]);
     toggleSwitch.hidden = isDraft;
-    toggleSwitch.disabled = record.original_author_id !== user.id;
+
+    var isCopy = !!(
+      user &&
+      record.original_author_id &&
+      record.original_author_id !== user.id
+    );
+    var visibilityHint = null;
+    if (isCopy) {
+      var hintText = "Só o autor original pode alterar a visibilidade desta receita.";
+      toggleCheckbox.disabled = true;
+      toggleSwitch.title = hintText;
+      visibilityHint = h(
+        "p",
+        { className: "form-hint", id: "is-public-toggle-hint" },
+        hintText
+      );
+      toggleSwitch.setAttribute("aria-describedby", "is-public-toggle-hint");
+    }
 
     var discardBtn = h(
       "button",
@@ -178,6 +196,7 @@
       instructionsInput,
       App.charCounter.attach(instructionsInput, 1000),
       toggleSwitch,
+      visibilityHint,
       actions,
     ]);
 
